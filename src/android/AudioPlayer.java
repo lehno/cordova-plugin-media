@@ -30,6 +30,10 @@ import android.util.Log;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.BufferedInputStream;
+import java.io.FileNotFoundException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -196,8 +200,40 @@ public class AudioPlayer implements OnCompletionListener, OnPreparedListener, On
         if (size == 1) {
             String logMsg = "renaming " + this.tempFile + " to " + file;
             Log.d(LOG_TAG, logMsg);
-            File f = new File(this.tempFile);
-            if (!f.renameTo(new File(file))) Log.e(LOG_TAG, "FAILED " + logMsg);
+            File newf = new File(file);
+            String folder = newf.getParent();
+            if (folder == null) folder = "";
+            File CheckDirectory;
+            CheckDirectory = new File(folder);
+            if (!CheckDirectory.exists()) {
+                CheckDirectory.mkdir();
+            }
+            InputStream in = null;
+            try {
+                in = new BufferedInputStream(new FileInputStream(this.tempFile));
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                Log.e(LOG_TAG, "FAILED  to open INPUT stream: " + logMsg);
+            }
+
+            OutputStream out = null;
+            try {
+                out = new FileOutputStream(file);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                Log.e(LOG_TAG, "FAILED to open OUTPUT stream: " + logMsg);
+            }
+
+            byte[] buf = new byte[1024];
+            int len; try {
+                while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
+                in.close();
+                out.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.e(LOG_TAG, "FAILED COPY: " + logMsg);
+            }
+
         }
         // more than one file so the user must have pause recording. We'll need to concat files.
         else {
